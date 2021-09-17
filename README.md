@@ -46,6 +46,8 @@ forked from [spring2go/cs_study_plan](https://github.com/spring2go/cs_study_plan
 
 说明：这门课程是系统编程基础，也是后续操作系统/网络/数据库/编译等课程的基础，相关内容是通向系统架构师的基本功。这门课比较贴近企业实战，对动手能力要求很高，课程一大目标是要程序员写出对机器友好的高性能代码。
 
+> CSAPP 配套 PPT [CMU 15-213](http://www.cs.cmu.edu/afs/cs/academic/class/15213-f17/www/schedule.html?utm_source=wechat_session&utm_medium=social&utm_oi=39169933967360)
+
 ### 2.3 第1年下半年
 
 课程：数据结构
