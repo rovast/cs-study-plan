@@ -172,10 +172,13 @@ int bitAnd(int x, int y)
  */
 int getByte(int x, int n)
 {
-  // TODO
-  int mask = 0xff << (n << 8);
-  printf("mask=%d", mask);
-  return x & mask;
+  // 1. 右移 8n 位，得到需要获取字节的最高位
+  int y = x >> (n << 3);
+  // printf("%x >> %d = %x\n", x, n << 3, y);
+  // printf("%x \& 0xff = %x\n", y, y & 0xff);
+
+  // 2. 只取最低两位
+  return y & 0xff;
 }
 /* 
  * logicalShift - shift x to the right by n, using a logical shift

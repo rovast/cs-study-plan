@@ -4,3 +4,13 @@
 ```shell script
 sudo apt-get install gcc-multilib
 ```
+
+# 指令说明
+
+```shell script
+# 检查操作合不合法，有没有使用不允许的操作符
+./dlc -e bits.c
+
+# 检查结果是否正确
+make btest && ./btest
+```
