@@ -1,3 +1,5 @@
+see https://rovast.notion.site/IEEE-ba5aa382ad8d496f924fc2e45591b71b
+
 # IEEE 浮点数
 
 CreatedAt: September 30, 2021 3:38 PM
