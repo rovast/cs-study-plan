@@ -187,10 +187,22 @@ int getByte(int x, int n)
  *   Legal ops: ! ~ & ^ | + << >>
  *   Max ops: 20
  *   Rating: 3 
+ * 
+ * 1. 默认的右移是算术右移(补齐最高位)，比如移动4位，得到 0xf8765432
+ * 2. 本题就是要最高位补0
+ * 
+ * 0x1<<31得到 0x800000000 即：最高位是1，其他都是0， 10000000000
+ * 右移 (n-1) 位得到 0x1111110000000
+ * 取反得到 0x0000000ffffffffff
+ * 
+ * 然后把高位都截取掉即可
+ * 
  */
 int logicalShift(int x, int n)
 {
-  return 2;
+  int mask = ~(((0x1 << 31) >> n) << 1);
+  // printf("n=%d, mask=%x\n", n, mask);
+  return (x >> n) & mask;
 }
 /*
  * bitCount - returns count of number of 1's in word
