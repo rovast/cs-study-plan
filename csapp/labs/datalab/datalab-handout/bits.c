@@ -270,10 +270,13 @@ int bang(int x)
  *   Legal ops: ! ~ & ^ | + << >>
  *   Max ops: 4
  *   Rating: 1
+ * 
+ * 返回补码的最小值。
+ * 补码的最小值就是最高位是 1，其他位都是 0，即 1000000000
  */
 int tmin(void)
 {
-  return 2;
+  return 0x1 << 31;
 }
 /* 
  * fitsBits - return 1 if x can be represented as an 
