@@ -245,10 +245,25 @@ int bitCount(int x)
  *   Legal ops: ~ & ^ | + << >>
  *   Max ops: 12
  *   Rating: 4 
+ * 
+ * 核心就是 如果 x1|x2 == 0，那么 x1 和 x2 必须都是 0。
+ * 对于我们的题目 x，他是 32bits
+ * 1. 我们把 32 bits 对折，得到每边 16bits  x |= x>> 16 只要有一边有 1，那么结果一定有 1
+ * 2. 再把 16bits 对折，可以获取到整个 16bits 里是否有1
+ * 
+ * 0000000000000001  00000001     0001  01   1
+ * 00000000      =>  0000      => 00 => 0 => 1
+ * 00000001          0001         01    1
  */
 int bang(int x)
 {
-  return 2;
+  x |= x >> 16;
+  x |= x >> 8;
+  x |= x >> 4;
+  x |= x >> 2;
+  x |= x >> 1;
+
+  return (~x) & 0x1;
 }
 /* 
  * tmin - return minimum two's complement integer 
