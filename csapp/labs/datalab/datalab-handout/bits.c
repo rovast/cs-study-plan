@@ -210,10 +210,34 @@ int logicalShift(int x, int n)
  *   Legal ops: ! ~ & ^ | + << >>
  *   Max ops: 40
  *   Rating: 4
+ * @see https://rovast.notion.site/datalab-bitcount-29c858a31c794a48baa26833bae36453
  */
 int bitCount(int x)
 {
-  return 2;
+  int count = 0, mask1, mask2, mask3, mask4, mask5;
+
+  // 生成几个所需的 mask
+  // mask1 = 0x55555555 =0101...
+  int tmp = (0x55) | (0x55 << 8);
+  mask1 = tmp | (tmp << 16);
+  // mask2 = 0x33333333 = 00110011
+  tmp = 0x33 | (0x33 << 8);
+  mask2 = tmp | (tmp << 16);
+  // mask3 = 0x0f0f0f0f = 00001111
+  tmp = 0x0f | (0x0f << 8);
+  mask3 = tmp | (tmp << 16);
+  // mask4 = 0x00ff00ff = 0000000011111111
+  mask4 = 0xff | (0xff << 16);
+  // mask5 = 0x0000ffff = 00000000000000001111111111111111
+  mask5 = 0xff | (0xff << 8);
+
+  count = (x & mask1) + ((x >> 1) & mask1);
+  count = (count & mask2) + ((count >> 2) & mask2);
+  count = (count & mask3) + ((count >> 4) & mask3);
+  count = (count & mask4) + ((count >> 8) & mask4);
+  count = (count & mask5) + ((count >> 16) & mask5);
+
+  return count;
 }
 /* 
  * bang - Compute !x without using !
