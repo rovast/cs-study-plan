@@ -286,11 +286,24 @@ int tmin(void)
  *   Legal ops: ! ~ & ^ | + << >>
  *   Max ops: 15
  *   Rating: 2
+ * 
+ * 看看 x 能不能被 n 位补码表示
+ * fitsBits(5,3)，3位补码的范围是 -4~3,表示不了5
+ * fitsBits(-4,3)，3位表示的范围是 -4~3
  */
 int fitsBits(int x, int n)
 {
-  return 2;
+  //To see whether the (n-1) bit equals to all MSB (w-n) bits
+  x = x >> (n + ~0);
+  //(x==0)||(x==-1)
+  return (!x) | (!(x + 1));
+
+  // int step = 32 + ~n + 1; // 32-n
+  // int tmp = x << step >> step;
+  // return !(tmp ^ x);
+  // left shift by 32-n then right shift by 32-n, and if tmp equals to x return 1
 }
+
 /* 
  * divpwr2 - Compute x/(2^n), for 0 <= n <= 30
  *  Round toward zero
@@ -301,7 +314,10 @@ int fitsBits(int x, int n)
  */
 int divpwr2(int x, int n)
 {
-  return 2;
+  int bias = (x >> 31) & ((0x1 << n) + ~0);
+  // printf("bias=%x\n", bias);
+  // if x is positive, bias is 0. if x is negative, bias is 0...01...1
+  return (x + bias) >> n;
 }
 /* 
  * negate - return -x 
@@ -312,8 +328,9 @@ int divpwr2(int x, int n)
  */
 int negate(int x)
 {
-  return 2;
+  return ~x + 1;
 }
+
 /* 
  * isPositive - return 1 if x > 0, return 0 otherwise 
  *   Example: isPositive(-1) = 0.
@@ -323,8 +340,12 @@ int negate(int x)
  */
 int isPositive(int x)
 {
-  return 2;
+  // x&(1<<31)  is to check if the number is negative.
+  // !x         is to check if the number is zero.
+  // A number is positive if it's not negative and not zero.
+  return !((x & (1 << 31)) >> 31 | !x);
 }
+
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
  *   Example: isLessOrEqual(4,5) = 1.
@@ -334,7 +355,11 @@ int isPositive(int x)
  */
 int isLessOrEqual(int x, int y)
 {
-  return 2;
+  int diff_sgn = !(x >> 31) ^ !(y >> 31);      // is 1 when signs are different
+  int a = diff_sgn & (x >> 31);                // diff signs and x is neg, gives 1
+  int b = !diff_sgn & !((y + (~x + 1)) >> 31); // same signs and difference is pos or = 0, gives 1
+  int f = a | b;
+  return f;
 }
 /*
  * ilog2 - return floor(log base 2 of x), where x > 0
@@ -345,7 +370,39 @@ int isLessOrEqual(int x, int y)
  */
 int ilog2(int x)
 {
-  return 2;
+  // @source: https://stackoverflow.com/questions/21442088/computing-the-floor-of-log-2x-using-only-bitwise-operators-in-c
+  int i, j, k, l, m;
+  x = x | (x >> 1);
+  x = x | (x >> 2);
+  x = x | (x >> 4);
+  x = x | (x >> 8);
+  x = x | (x >> 16);
+
+  // i = 0x55555555
+  i = 0x55 | (0x55 << 8);
+  i = i | (i << 16);
+
+  // j = 0x33333333
+  j = 0x33 | (0x33 << 8);
+  j = j | (j << 16);
+
+  // k = 0x0f0f0f0f
+  k = 0x0f | (0x0f << 8);
+  k = k | (k << 16);
+
+  // l = 0x00ff00ff
+  l = 0xff | (0xff << 16);
+
+  // m = 0x0000ffff
+  m = 0xff | (0xff << 8);
+
+  x = (x & i) + ((x >> 1) & i);
+  x = (x & j) + ((x >> 2) & j);
+  x = (x & k) + ((x >> 4) & k);
+  x = (x & l) + ((x >> 8) & l);
+  x = (x & m) + ((x >> 16) & m);
+  x = x + ~0;
+  return x;
 }
 /* 
  * float_neg - Return bit-level equivalent of expression -f for
@@ -360,7 +417,12 @@ int ilog2(int x)
  */
 unsigned float_neg(unsigned uf)
 {
-  return 2;
+  int mask = (1 << 31);
+  if ((uf & (~mask)) > (0xFF << 23))
+  { // 0xFF << 23 = 0 11111111 000...000
+    return uf;
+  }
+  return uf ^ mask; // 0 ^ 1 = 1, 1 ^ 1 = 0
 }
 /* 
  * float_i2f - Return bit-level equivalent of expression (float) x
@@ -373,7 +435,45 @@ unsigned float_neg(unsigned uf)
  */
 unsigned float_i2f(int x)
 {
-  return 2;
+  int sign, exp, frac, bitc, tailb;
+
+  if (x == 0)
+    return 0;
+  else if (x == 0x80000000)
+    return 0xCF000000;
+
+  sign = (x >> 31) & 1;
+  if (sign)
+    x = -x;
+
+  // count bits to the right of MSB
+  bitc = 1;
+  while ((x >> bitc) != 0)
+    bitc++;
+  bitc--;
+
+  exp = bitc + 127;
+
+  x = x << (31 - bitc); // clear all those zeros to the left of MSB
+  frac = (x >> 8) & 0x7FFFFF;
+
+  // round to even (nearest)
+  if (bitc > 23)
+  {
+    tailb = x & 0xFF; // byte to round
+
+    if ((tailb > 128) || ((tailb == 128) && (frac & 1)))
+    {
+      frac += 1;
+      if (frac >> 23)
+      {
+        exp += 1;
+        frac = 0;
+      }
+    }
+  }
+
+  return (sign << 31) | (exp << 23) | frac;
 }
 /* 
  * float_twice - Return bit-level equivalent of expression 2*f for
@@ -388,5 +488,14 @@ unsigned float_i2f(int x)
  */
 unsigned float_twice(unsigned uf)
 {
-  return 2;
+  int signMask = (1 << 31);
+  if ((uf & (~signMask)) >= (0xFF << 23))
+  {
+    return uf;
+  }
+  else if ((uf & (0xFF << 23)) == 0)
+  {
+    return (uf & ~(0x1FF << 23)) << 1 | (uf & signMask);
+  }
+  return uf + (1 << 23);
 }
