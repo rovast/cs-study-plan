@@ -138,3 +138,88 @@ sscanf(input_string, "%d %d %d %d %d %d", rsp, rsp+4, rsp+8, rsp+12, rsp+16, rsp
 ```
 1 2 4 8 16 32
 ```
+
+## phase_3
+
+打印汇编信息
+```shell script
+b phase_3
+r decode2.txt
+# 输入一个 hello3 来探探路
+```
+
+**func main**
+```nasm
+0x400e6a <main+202>     callq  0x40149e <read_line>
+0x400e6f <main+207>     mov    %rax,%rdi ; 第1个参数为用户输入值
+0x400e72 <main+210>     callq  0x400f43 <phase_3>
+0x400e77 <main+215>     callq  0x4015c4 <phase_defused>
+```
+
+**func phase_3**
+```nasm
+0x400f43 <phase_3>      sub    $0x18,%rsp      ;1 申请 24 字节的栈空间
+0x400f47 <phase_3+4>    lea    0xc(%rsp),%rcx  ;2 rsp+12 作为 sscanf 的 param 4
+0x400f4c <phase_3+9>    lea    0x8(%rsp),%rdx  ;3 rsp+8  作为 sscanf 的 param 3
+0x400f51 <phase_3+14>   mov    $0x4025cf,%esi  ;4 "%d %d" -> esi(执行完该语句，通过 x $esi可得到)
+0x400f56 <phase_3+19>   mov    $0x0,%eax       ;5 返回值设置为 0
+0x400f5b <phase_3+24>   callq  0x400bf0 <__isoc99_sscanf@plt> ;6 sscan(input_string, "%d %d", rsp+8, rsp+12)
+0x400f60 <phase_3+29>   cmp    $0x1,%eax              ;7 确定是不是有两个变量(rsp+8, rsp+12)被填充了
+0x400f63 <phase_3+32>   jg     0x400f6a <phase_3+39>  ;8.1 sscanf 执行 OK，跳转到 0x400f6a
+0x400f65 <phase_3+34>   callq  0x40143a <explode_bomb>;8.2 否则引爆炸弹 BOOM!
+0x400f6a <phase_3+39>   cmpl   $0x7,0x8(%rsp)         ;9 比较 rsp+8 和 7 的关系
+0x400f6f <phase_3+44>   ja     0x400fad <phase_3+106> ;10.1 (rsp+8) > 7，跳转到 0x400fad, 经查，对应BOOM!! （`ja` 表示无符号的大于）
+0x400f71 <phase_3+46>   mov    0x8(%rsp),%eax         ;10.2 (rsp+8) <=7，则 rax <- rsp+8【rsp+8是小于等于7的数】
+0x400f75 <phase_3+50>   jmpq   *0x402470(,%rax,8)     ;11 跳转到 (0x400f7c + 8*rax)  (jmpq * 表示间接跳转，经打印 `p/x *0x402470`=0x400f7c)
+0x400f7c <phase_3+57>   mov    $0xcf,%eax             ;12 如果 rsp+8==0, 则跳转到这里， eax <- 0xcf=207
+0x400f81 <phase_3+62>   jmp    0x400fbe <phase_3+123> ;13 判断 eax 和 rsp+12 是否相等，不等则爆炸！
+0x400f83 <phase_3+64>   mov    $0x2c3,%eax            ;14 eax <- 0x2c3
+0x400f88 <phase_3+69>   jmp    0x400fbe <phase_3+123> ;15 eax === rsp+12 ?
+0x400f8a <phase_3+71>   mov    $0x100,%eax            ;16 0x199 <- eax
+0x400f8f <phase_3+76>   jmp    0x400fbe <phase_3+123> ;17 eax === rsp+12 ?
+0x400f91 <phase_3+78>   mov    $0x185,%eax            ; eax=0x185
+0x400f96 <phase_3+83>   jmp    0x400fbe <phase_3+123> ;
+0x400f98 <phase_3+85>   mov    $0xce,%eax             ; eax=0xce
+0x400f9d <phase_3+90>   jmp    0x400fbe <phase_3+123>                                            
+0x400f9f <phase_3+92>   mov    $0x2aa,%eax                                                       
+0x400fa4 <phase_3+97>   jmp    0x400fbe <phase_3+123>                                            
+0x400fa6 <phase_3+99>   mov    $0x147,%eax                                                       
+0x400fab <phase_3+104>  jmp    0x400fbe <phase_3+123>                                            
+0x400fad <phase_3+106>  callq  0x40143a <explode_bomb> ; BOOM!
+0x400fb2 <phase_3+111>  mov    $0x0,%eax               ; eax=0
+0x400fb7 <phase_3+116>  jmp    0x400fbe <phase_3+123>  ;
+0x400fb9 <phase_3+118>  mov    $0x137,%eax             ;
+0x400fbe <phase_3+123>  cmp    0xc(%rsp),%eax         ; 比较 rsp+12 和 eax 关系
+0x400fc2 <phase_3+127>  je     0x400fc9 <phase_3+134> ; rsp+12 == eax 顺利结束
+0x400fc4 <phase_3+129>  callq  0x40143a <explode_bomb>; rsp+12 != eax，爆炸！ BOOM
+0x400fc9 <phase_3+134>  add    $0x18,%rsp             ; 释放栈空间
+0x400fcd <phase_3+138>  retq  
+```
+
+- 根据 0x400f56 `;6` 可以获得信息：用户输入的格式是按照 "%d %d" 的方式来的，并且输入的第一个值是 `rsp+8`，第二个值是 `rsp+12`。
+- 根据 0x400f71 `;11` 我们可以知道第一个输入值(即rsp+8)必须是小于等于7的，不然就会爆炸！ 
+- 其中 0x400f75 `;11` 是一个间接跳转，其跳转的地址是 *(0x400f7c + 8x第一个参数)
+  > 我们可以通过 `p/x address` 指令来打印间接跳转的地址
+  > - `p/x *(0x402470+8*0) = 0x400f7c`
+  > - `p/x *(0x402470+8*1) = 0x400fb9`
+  > - `p/x *(0x402470+8*2) = 0x400f83`
+  > - `p/x *(0x402470+8*3) = 0x400f8a`
+  > - `p/x *(0x402470+8*4) = 0x400f91`
+  > - `p/x *(0x402470+8*5) = 0x400f98`
+  > - `p/x *(0x402470+8*6) = 0x400f9f`
+  > - `p/x *(0x402470+8*7) = 0x400fa6`
+
+> 我们后面可以得到 0x400fbe 处干的事情就是判断 eax 和第二个参数是否相等，相等则解除炸弹！
+
+接下来分情况讨论，我们输入的是 "%d %d"，对应十进制
+1. 第一个值是 0，则 0x400f75 跳转到 0x400f7c, 第二个值是 0xcf = 207
+2. 第一个值是 1，则 0x400f75 跳转到 0x400fb9, 第二个值是 0x137 = 311
+3. 第一个值是 2，则 0x400f75 跳转到 0x400f83, 第二个值是 0x2c3 = 707
+4. 第一个值是 3，则 0x400f75 跳转到 0x400f8a, 第二个值是 0x100 = 256
+5. 第一个值是 4，则 0x400f75 跳转到 0x400f91, 第二个值是 0x185 = 389
+6. 第一个值是 5，则 0x400f75 跳转到 0x400f98, 第二个值是 0xce = 206
+7. 第一个值是 6，则 0x400f75 跳转到 0x400f9f, 第二个值是 0x2aa = 682
+8. 第一个值是 7，则 0x400f75 跳转到 0x400fa6, 第二个值是 0x147 = 327
+
+
+
