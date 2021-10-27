@@ -7,6 +7,13 @@ This is an x86-64 bomb for self-study students.
 
 输入六段内容，来拆解炸弹。当输入错误时，炸弹就会爆炸！
 
+这里补充下几个作为参数的寄存器
+- #1 `%rdi`
+- #2 `%rsi`
+- #3 `%rdx`
+- #4 `%rcx`
+- #5 `%r8`
+- #6 `%r9`
 
 ## phase_1
 
@@ -222,4 +229,137 @@ r decode2.txt
 8. 第一个值是 7，则 0x400f75 跳转到 0x400fa6, 第二个值是 0x147 = 327
 
 
+## phase_4
 
+```shell script
+b main
+b phase_4
+r decode3.txt
+```
+
+
+**func main**
+```nasm
+0x400e86 <main+230>     callq  0x40149e <read_line>                                           
+0x400e8b <main+235>     mov    %rax,%rdi                                                      
+0x400e8e <main+238>     callq  0x40100c <phase_4>                                             
+0x400e93 <main+243>     callq  0x4015c4 <phase_defused>  
+```
+
+随便输入一个字符串 "hello4"，进行 phase_4 功能的探测
+```nasm
+0x40100c <phase_4>      sub    $0x18,%rsp     ; 申请 24 字节的栈空间
+0x401010 <phase_4+4>    lea    0xc(%rsp),%rcx ; rsp+12 作为 sscanf 的 param 4
+0x401015 <phase_4+9>    lea    0x8(%rsp),%rdx ; rsp+8  作为 sscanf 的 param 3
+0x40101a <phase_4+14>   mov    $0x4025cf,%esi ; 0x4025cf 作为 sccanf 的 param 2，即数据格式的定义，内容为 "%d %d"
+0x40101f <phase_4+19>   mov    $0x0,%eax      ; 返回值设置为 0
+0x401024 <phase_4+24>   callq  0x400bf0 <__isoc99_sscanf@plt> ; 调用 sscanf
+0x401029 <phase_4+29>   cmp    $0x2,%eax      ; 看看 sscanf 是不是成功执行了，输入了 "%d %d"
+0x40102c <phase_4+32>   jne    0x401035 <phase_4+41> ; sscanf 没有按预期执行，BOOM!
+0x40102e <phase_4+34>   cmpl   $0xe,0x8(%rsp)        ; 比较 rsp+8(第一个输入值) 和 14 大小
+0x401033 <phase_4+39>   jbe    0x40103a <phase_4+46> ; rsp+8 <= 14，跳转到 0x40103a，不然就爆炸！
+0x401035 <phase_4+41>   callq  0x40143a <explode_bomb> ; BOOM
+0x40103a <phase_4+46>   mov    $0xe,%edx        ; param3 = 4
+0x40103f <phase_4+51>   mov    $0x0,%esi        ; param2 = 0
+0x401044 <phase_4+56>   mov    0x8(%rsp),%edi   ; param1 = 8
+0x401048 <phase_4+60>   callq  0x400fce <func4> ; func4(8, 0, 4)
+0x40104d <phase_4+65>   test   %eax,%eax        ; 看返回值是不是 = 0
+0x40104f <phase_4+67>   jne    0x401058 <phase_4+76>  ; func4(8, 0, 4) !=2, BOOM!
+0x401051 <phase_4+69>   cmpl   $0x0,0xc(%rsp)         ; rsp+12(第二个输入值) 和 0 比较
+0x401056 <phase_4+74>   je     0x40105d <phase_4+81>  ; 第二个输入值 == 0，则没问题
+0x401058 <phase_4+76>   callq  0x40143a <explode_bomb>; rsp+12 != 0, BOOM!
+0x40105d <phase_4+81>   add    $0x18,%rsp             ; 释放栈空间
+0x401061 <phase_4+85>   retq 
+```
+
+查看立即数对应的字符串可以用下述指令
+```shell script
+(gdb) x/s 0x4025cf
+0x4025cf:       "%d %d"
+(gdb) p/c "%d %d"
+$3 = {37 '%', 100 'd', 32 ' ', 37 '%', 100 'd', 0 '\000'}
+```
+
+根据以下关键的两行指令，可以得到 rsp+8 和 rsp+12 的含义分别是输入的 第一个参数 和 第二个参数
+```nasm
+0x401010 <phase_4+4>    lea    0xc(%rsp),%rcx ; rsp+12 作为 sscanf 的 param 4
+0x401015 <phase_4+9>    lea    0x8(%rsp),%rdx ; rsp+8  作为 sscanf 的 param 3
+0x40101a <phase_4+14>   mov    $0x4025cf,%esi ; 0x4025cf 作为 sccanf 的 param 2，即数据格式的定义，内容为 "%d %d"
+...
+0x401024 <phase_4+24>   callq  0x400bf0 <__isoc99_sscanf@plt> ; 调用 sscanf
+...
+```
+
+**接下来确定输入的第一个值**
+```nasm
+0x40102e <phase_4+34>   cmpl   $0xe,0x8(%rsp)        ; 比较 rsp+8(第一个输入值) 和 14 大小
+0x401033 <phase_4+39>   jbe    0x40103a <phase_4+46> ; rsp+8 <= 14，跳转到 0x40103a，不然就爆炸！
+0x401035 <phase_4+41>   callq  0x40143a <explode_bomb> ; BOOM
+0x40103a <phase_4+46>   mov    $0xe,%edx        ; param3 = 14
+0x40103f <phase_4+51>   mov    $0x0,%esi        ; param2 = 0
+0x401044 <phase_4+56>   mov    0x8(%rsp),%edi   ; param1 = rsp+8
+0x401048 <phase_4+60>   callq  0x400fce <func4> ; func4(rsp+8, 0, 14)
+0x40104d <phase_4+65>   test   %eax,%eax        ; 看返回值是不是 = 0
+```
+得到，两个重要信息
+1. 第一个输入值不大于 14
+2. func4(input1, 0, 14) 返回值等于 0
+
+func func4(input,i,j)  rdi:input, rsi:i, rdx:j
+```nasm
+0x400fce <func4>        sub    $0x8,%rsp
+0x400fd2 <func4+4>      mov    %edx,%eax
+0x400fd4 <func4+6>      sub    %esi,%eax  ; eax = j-i
+0x400fd6 <func4+8>      mov    %eax,%ecx
+0x400fd8 <func4+10>     shr    $0x1f,%ecx ;     (逻辑右移 31 位，则只剩下符号位 注：shr逻辑右移，sar算术右移)
+0x400fdb <func4+13>     add    %ecx,%eax  ; 以上三行在判断 eax 的符号
+0x400fdd <func4+15>     sar    %eax       ; eax /= 2
+0x400fdf <func4+17>     lea    (%rax,%rsi,1),%ecx  ; val = eax + i = (j-i)/2 + i = (i+j)/2
+0x400fe2 <func4+20>     cmp    %edi,%ecx           ; 比较输入和 val
+0x400fe4 <func4+22>     jle    0x400ff2 <func4+36> ; 如果输入小于等于 val，则跳转
+0x400fe6 <func4+24>     lea    -0x1(%rcx),%edx     ;
+0x400fe9 <func4+27>     callq  0x400fce <func4>    ; 否则继续执行 func4，第三个参数变为 val-1
+0x400fee <func4+32>     add    %eax,%eax
+0x400ff0 <func4+34>     jmp    0x401007 <func4+57> ; return 2*func4(n, i, val-1)
+0x400ff2 <func4+36>     mov    $0x0,%eax             ; eax = 0
+0x400ff7 <func4+41>     cmp    %edi,%ecx
+0x400ff9 <func4+43>     jge    0x401007 <func4+57>   ; 如果输入大于 val, 则 return
+0x400ffb <func4+45>     lea    0x1(%rcx),%esi
+0x400ffe <func4+48>     callq  0x400fce <func4>      ; 否则递归执行 func4，第二个参数变为 val+1
+0x401003 <func4+53>     lea    0x1(%rax,%rax,1),%eax ; rax = 2*func(n, val+1, j)
+0x401007 <func4+57>     add    $0x8,%rsp
+0x40100b <func4+61>     retq
+```
+
+我们假设函数的原型为 `func4(int n, int i, int j)`，
+汇编开头的几行，实际上是在计算 `(i+j)/2`，其实就是二分法求中值。之后进行了判断，如果输入值小于 val，则
+
+```c
+int func4(int n, int i, int j) {
+    int val = (j + i) / 2;
+    if (val <= n) {
+        if (val >= n) return 0;
+        else return 2 * func4(n, val+1, j) + 1;
+    } else {
+        return 2 * func4(n, i, val-1);
+    }
+}
+```
+
+这段代码的作用类似二分搜索，但是目标值只能向小的半段搜索，否则 `return 2 * func4(n, val+1, j) + 1`; 会返回非零的值。我们分析这个函数的取值可以得知满足条件的数有 0, 1, 3, 7
+
+**我们可以确定第二个输入是 0**
+```nasm
+0x401051 <phase_4+69>   cmpl   $0x0,0xc(%rsp)         ; rsp+12(第二个输入值) 和 0 比较
+0x401056 <phase_4+74>   je     0x40105d <phase_4+81>  ; 第二个输入值 == 0，则没问题
+0x401058 <phase_4+76>   callq  0x40143a <explode_bomb>; rsp+12 != 0, BOOM!
+```
+
+所以满足条件的值有
+
+```text
+0 0
+1 0
+3 0
+7 0
+```
