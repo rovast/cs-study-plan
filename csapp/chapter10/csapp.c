@@ -6,7 +6,7 @@
 
 /**
  * Unix 风格的错误处理函
- * 
+ *
  * 早期的 unix 函数遇到错误时，返回 -1，同时会设置全局的 errorno
  */
 void unix_error(char *msg)
@@ -17,7 +17,7 @@ void unix_error(char *msg)
 
 /**
  * Posix 风格错误处理函数
- * 
+ *
  * 较新的 POSIX 函数，用返回值0表示成功，非0则表示错误码。返回的有用结果会放在参数中
  */
 void posix_error(int code, char *msg)
@@ -231,4 +231,10 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n)
     }
 
     return (n - nleft);
+}
+
+int Stat(const char *filename, struct stat *buf)
+{
+    if (stat(filename, buf) < 0)
+        unix_error("Stat error");
 }

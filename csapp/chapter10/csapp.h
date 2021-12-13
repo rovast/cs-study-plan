@@ -11,6 +11,7 @@
 #include <fcntl.h>
 // ssize
 #include <sys/types.h>
+// stat
 #include <sys/stat.h>
 // close
 #include <unistd.h>
@@ -45,3 +46,5 @@ void rio_readinitb(rio_t *rp, int fd);
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 // rio_readn with buff
 ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n);
+
+int Stat(const char *filename, struct stat *buf);
