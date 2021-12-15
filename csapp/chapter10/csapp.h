@@ -13,8 +13,12 @@
 #include <sys/types.h>
 // stat
 #include <sys/stat.h>
-// close
+// close dup2
 #include <unistd.h>
+// opendir
+#include <dirent.h>
+// wait
+#include <sys/wait.h>
 
 /* Persistent state for the robust I/O (Rio) package */
 /* $begin rio_t */
@@ -28,9 +32,15 @@ typedef struct
 } rio_t;
 /* $end rio_t */
 
-/**
- * Wrappers for IO
- */
+/*********************************************
+ * Wrappers for Unix process control functions
+ ********************************************/
+pid_t Fork(void);
+pid_t Wait(int *status);
+
+/********************************
+ * Wrappers for Unix I/O routines
+ ********************************/
 int Open(const char *pathname, int flags, mode_t mode);
 ssize_t Read(int fd, void *buf, size_t n);
 ssize_t Write(int fd, const void *buf, size_t n);
@@ -48,3 +58,12 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 
 int Stat(const char *filename, struct stat *buf);
+int Fstat(int fd, struct stat *buf);
+
+// 目录相关操作
+DIR *Opendir(const char *name);
+struct dirent *Readdir(DIR *dirp);
+int Closedir(DIR *dirp);
+
+// IO重定向
+int Dup2(int oldfd, int newfd);

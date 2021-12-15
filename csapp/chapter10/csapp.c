@@ -44,6 +44,29 @@ void app_error(char *msg)
     exit(0);
 }
 
+/*********************************************
+ * Wrappers for Unix process control functions
+ ********************************************/
+pid_t Fork(void)
+{
+    pid_t pid;
+
+    if ((pid = fork()) < 0)
+        unix_error("Fork error");
+
+    return pid;
+}
+
+pid_t Wait(int *status)
+{
+    pid_t pid;
+
+    if ((pid = wait(status)) < 0)
+        unix_error("Wait error");
+
+    return pid;
+}
+
 /**
  * *********** UNIX IO 包装 *********************
  */
@@ -233,8 +256,58 @@ ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n)
     return (n - nleft);
 }
 
+// 10.6 读取文件元数据
 int Stat(const char *filename, struct stat *buf)
 {
     if (stat(filename, buf) < 0)
         unix_error("Stat error");
+}
+
+int Fstat(int fd, struct stat *buf)
+{
+    if (fstat(fd, buf) < 0)
+        unix_error("Fstat error");
+}
+
+// 10.7 读取目录内容
+DIR *Opendir(const char *name)
+{
+    DIR *dirp = opendir(name);
+
+    if (!dirp)
+        unix_error("Opendir error");
+    return dirp;
+}
+
+struct dirent *Readdir(DIR *dirp)
+{
+    struct dirent *dep;
+
+    errno = 0;
+    dep = readdir(dirp);
+    if (dep == NULL && errno != 0)
+        unix_error("Readdir error");
+    return dep;
+}
+
+int Closedir(DIR *dirp)
+{
+    int rc;
+
+    if ((rc = closedir(dirp)) < 0)
+        unix_error("Closedir error");
+
+    return 0;
+}
+
+// 关闭 newfd 打开的文件（如果 newfd  已打开），然后把 newfd 指向 oldfd 的已打开文件表
+// 如果 oldfd  是无效的，newfd 也不会被关闭
+int Dup2(int oldfd, int newfd)
+{
+    int rc;
+
+    if ((rc = dup2(oldfd, newfd)) < 0)
+        unix_error("Dup2 error");
+
+    return rc;
 }
