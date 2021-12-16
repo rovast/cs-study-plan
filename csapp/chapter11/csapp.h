@@ -1,3 +1,10 @@
+/*
+ * csapp.h - prototypes and definitions for the CS:APP3e book
+ */
+/* $begin csapp.h */
+#ifndef __CSAPP_H__
+#define __CSAPP_H__
+
 // fprintf stderr
 #include <stdio.h>
 // exit
@@ -25,6 +32,11 @@
 #include <sys/socket.h>
 // addrinfo
 #include <netdb.h>
+
+/* Simplifies calls to bind(), connect(), and accept() */
+/* $begin sockaddrdef */
+typedef struct sockaddr SA;
+/* $end sockaddrdef */
 
 /* Persistent state for the robust I/O (Rio) package */
 /* $begin rio_t */
@@ -64,16 +76,19 @@ ssize_t Read(int fd, void *buf, size_t n);
 ssize_t Write(int fd, const void *buf, size_t n);
 void Close(int fd);
 
-// RIO 无换成你输入输出函数至多传送 n 字节到内存位置 usrbuf。如果被应用信号处理程序中断，每个函数会手动重启
-ssize_t rio_readn(int fd, void *usrbuf, size_t n);
-ssize_t rio_writen(int fd, void *usrbuf, size_t n);
+/* Rio (Robust I/O) package */
+ssize_t rio_readn(int fd, void *usrbuf, size_t n);             // readn without buff
+ssize_t rio_writen(int fd, void *usrbuf, size_t n);            // writen without buff
+void rio_readinitb(rio_t *rp, int fd);                         // init buff
+ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n);         // read n with buff
+ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen); // read line with buff
 
-// RIO 带缓冲的输入函数，先预读一部分内容至缓冲区
-void rio_readinitb(rio_t *rp, int fd);
-// read_line with buff
-ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
-// rio_readn with buff
-ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n);
+/* Wrappers for Rio package */
+ssize_t Rio_readn(int fd, void *usrbuf, size_t n);
+void Rio_writen(int fd, void *usrbuf, size_t n);
+void Rio_readinitb(rio_t *rp, int fd);
+ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n);
+ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 
 int Stat(const char *filename, struct stat *buf);
 int Fstat(int fd, struct stat *buf);
@@ -102,3 +117,14 @@ void Getnameinfo(const struct sockaddr *sa, socklen_t salen, char *host, size_t 
 void Freeaddrinfo(struct addrinfo *res);
 void Inet_ntop(int af, const void *src, char *dst, socklen_t size);
 void Inet_pton(int af, const char *src, void *dst);
+
+/* Reentrant protocol-independent client/server helpers */
+int open_clientfd(char *hostname, char *port);
+int open_listenfd(char *port);
+
+/* Wrappers for reentrant protocol-independent client/server helpers */
+int Open_clientfd(char *hostname, char *port);
+int Open_listenfd(char *port);
+
+#endif /* __CSAPP_H__ */
+/* $end csapp.h */

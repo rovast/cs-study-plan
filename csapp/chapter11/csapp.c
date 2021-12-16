@@ -312,6 +312,60 @@ int Dup2(int oldfd, int newfd)
     return rc;
 }
 
+/****************************
+ * Sockets interface wrappers
+ ****************************/
+
+int Socket(int domain, int type, int protocol)
+{
+    int rc;
+
+    if ((rc = socket(domain, type, protocol)) < 0)
+        unix_error("Socket error");
+    return rc;
+}
+
+void Setsockopt(int s, int level, int optname, const void *optval, int optlen)
+{
+    int rc;
+
+    if ((rc = setsockopt(s, level, optname, optval, optlen)) < 0)
+        unix_error("Setsockopt error");
+}
+
+void Bind(int sockfd, struct sockaddr *my_addr, int addrlen)
+{
+    int rc;
+
+    if ((rc = bind(sockfd, my_addr, addrlen)) < 0)
+        unix_error("Bind error");
+}
+
+void Listen(int s, int backlog)
+{
+    int rc;
+
+    if ((rc = listen(s, backlog)) < 0)
+        unix_error("Listen error");
+}
+
+int Accept(int s, struct sockaddr *addr, socklen_t *addrlen)
+{
+    int rc;
+
+    if ((rc = accept(s, addr, addrlen)) < 0)
+        unix_error("Accept error");
+    return rc;
+}
+
+void Connect(int sockfd, struct sockaddr *serv_addr, int addrlen)
+{
+    int rc;
+
+    if ((rc = connect(sockfd, serv_addr, addrlen)) < 0)
+        unix_error("Connect error");
+}
+
 /*******************************
  * Protocol-independent wrappers
  *******************************/
@@ -356,4 +410,180 @@ void Inet_pton(int af, const char *src, void *dst)
         app_error("inet_pton error: invalid dotted-decimal address");
     else if (rc < 0)
         unix_error("Inet_pton error");
+}
+
+/**********************************
+ * Wrappers for robust I/O routines
+ **********************************/
+ssize_t Rio_readn(int fd, void *ptr, size_t nbytes)
+{
+    ssize_t n;
+
+    if ((n = rio_readn(fd, ptr, nbytes)) < 0)
+        unix_error("Rio_readn error");
+    return n;
+}
+
+void Rio_writen(int fd, void *usrbuf, size_t n)
+{
+    if (rio_writen(fd, usrbuf, n) != n)
+        unix_error("Rio_writen error");
+}
+
+void Rio_readinitb(rio_t *rp, int fd)
+{
+    rio_readinitb(rp, fd);
+}
+
+ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n)
+{
+    ssize_t rc;
+
+    if ((rc = rio_readnb(rp, usrbuf, n)) < 0)
+        unix_error("Rio_readnb error");
+    return rc;
+}
+
+ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
+{
+    ssize_t rc;
+
+    if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0)
+        unix_error("Rio_readlineb error");
+    return rc;
+}
+
+/********************************
+ * Client/server helper functions
+ ********************************/
+/*
+ * open_clientfd - Open connection to server at <hostname, port> and
+ *     return a socket descriptor ready for reading and writing. This
+ *     function is reentrant and protocol-independent.
+ *
+ * 客户端向服务的端口发起链接，返回 clientfd
+ *
+ * client: socket() -> connect()
+ *
+ *     On error, returns:
+ *       -2 for getaddrinfo error
+ *       -1 with errno set for other errors.
+ */
+int open_clientfd(char *hostname, char *port)
+{
+    int clientfd, rc;
+    struct addrinfo hints, *listp, *p;
+
+    // 获取该 hostname 下的可能地址链表信息
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_STREAM; // open a connection
+    hints.ai_flags = AI_NUMERICSERV; // using a numeric port arg
+    hints.ai_flags |= AI_ADDRCONFIG; // recommended for connections
+    if ((rc = getaddrinfo(hostname, port, &hints, &listp)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo failed (%s:%s): %s\n", hostname, port, gai_strerror(rc));
+        return -2;
+    }
+
+    for (p = listp; p; p = p->ai_next)
+    {
+        if ((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0) // 连接失败，尝试下一个
+            continue;
+
+        if (connect(clientfd, p->ai_addr, p->ai_addrlen) != -1) // success
+            break;
+
+        if (close(clientfd) < 0) // 链接失败，需要释放描述符，这里处理描述符关闭失败的情况
+        {
+            fprintf(stderr, "open_clientfd: close failed: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+
+    freeaddrinfo(listp);
+
+    if (!p) // all connections failed
+        return -1;
+    else
+        return clientfd;
+}
+
+/*
+ * open_listenfd - Open and return a listening socket on port. This
+ *     function is reentrant and protocol-independent.
+ *
+ * 打开服务器的端口用于监听，返回监听 fd 即，listenfd
+ *
+ * server:  socket() -> bind() -> listen()
+ *
+ *     On error, returns:
+ *       -2 for getaddrinfo error
+ *       -1 with errno set for other errors.
+ */
+int open_listenfd(char *port)
+{
+    struct addrinfo hints, *listp, *p;
+    int listenfd, rc, optval = 1;
+
+    // 获取可能的地址列表
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_socktype = SOCK_STREAM;             // accept connections
+    hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG; // on any IP address
+    hints.ai_flags |= AI_NUMERICSERV;            // using port number
+    if ((rc = getaddrinfo(NULL, port, &hints, &listp)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo failed (port  %s): %s\n", port, gai_strerror(rc));
+        return -2;
+    }
+
+    // 遍历列表，获取可用的地址信息
+    for (p = listp; p; p = p->ai_next)
+    {
+        if ((listenfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0) // socket 创建失败，尝试下一个
+            continue;
+
+        /* Eliminates "Address already in use" error from bind */
+        setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int));
+
+        if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) // success
+            break;
+
+        if (close(listenfd) < 0) // bind error, try the next
+        {
+            fprintf(stderr, "open_listenfd close failed: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+
+    freeaddrinfo(listp);
+    if (!p) // No address worked
+        return -1;
+
+    if (listen(listenfd, LISTENQ) < 0)
+    {
+        close(listenfd);
+        return -1;
+    }
+
+    return listenfd;
+}
+
+int Open_clientfd(char *hostname, char *port)
+{
+    int rc;
+
+    if ((rc = open_clientfd(hostname, port)) < 0)
+        unix_error("Open_clientfd error");
+
+    return rc;
+}
+
+int Open_listenfd(char *port)
+{
+    int rc;
+
+    if ((rc = open_listenfd(port)) < 0)
+        unix_error("Open_listenfd error");
+
+    return rc;
 }
