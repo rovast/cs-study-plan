@@ -16,12 +16,12 @@ int main(int argc, char **argv)
     port = argv[2];
 
     clientfd = Open_clientfd(host, port);
-    Rio_readinitb(&rio, clientfd);
+    // Rio_readinitb(&rio, clientfd); // Removed this line will still be ok?
 
     while (Fgets(buf, MAXLINE, stdin) != NULL)
     {
         Rio_writen(clientfd, buf, strlen(buf));
-        Rio_readlineb(&rio, buf, MAXLINE);
+        // Rio_readlineb(&rio, buf, MAXLINE); // Removed this line will still be ok?
         Fputs(buf, stdout); // 输出到终端
     }
 
