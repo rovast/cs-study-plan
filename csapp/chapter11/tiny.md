@@ -24,3 +24,44 @@ Content-length: 158
 <hr><em>The Tiny Web server</em>
 Connection closed by foreign host.
 ```
+
+## parse_uri
+
+解析 uri 参数到 filename 和 cgiargs。如果不存在则返回 404。
+
+
+server编译和输出
+```shell script
+➜  chapter11 git:(main) ✗ gcc tiny.c csapp.c -g && ./a.out 21080
+
+Accepted connection from (117.89.199.219, 21384)
+GET /not HTTP/1.1
+Host: www.2huo.xyz:21080
+Accept-Encoding: deflate, gzip
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Accept-Language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6
+Cookie: key=%24argon2i%24v%3D19%24m%3D4096%2Ct%3D3%2Cp%3D1%24Ou5VFbV6pHi0aweNtwh9tQ%24D7ylm7cfCTZYmggmym5AIwKztrbqUMRAEDt%2Fo%2B2ysk0
+```
+
+
+客户端
+```shell script
+➜  ~ curl 'http://www.2huo.xyz:21080/not' \
+  -H 'Connection: keep-alive' \
+  -H 'Upgrade-Insecure-Requests: 1' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36' \
+  -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6' \
+  -H 'Cookie: key=%24argon2i%24v%3D19%24m%3D4096%2Ct%3D3%2Cp%3D1%24Ou5VFbV6pHi0aweNtwh9tQ%24D7ylm7cfCTZYmggmym5AIwKztrbqUMRAEDt%2Fo%2B2ysk0' \
+  --compressed \
+  --insecure
+<html><title>Tiny Error</title><body bgcolor="ffffff">
+404: Not found
+<p>Tiny could't find the file.: ./not
+<hr><em>The Tiny Web server</em>
+```
+
+

@@ -39,7 +39,10 @@ int main(int argc, char **argv)
 
 void doit(int fd)
 {
+    int is_static;
+    struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
+    char filename[MAXLINE], cgiargs[MAXLINE];
     rio_t rio;
 
     Rio_readinitb(&rio, fd);
@@ -51,6 +54,16 @@ void doit(int fd)
     if (strcasecmp(method, "GET")) // strcasecamp 不缺分大小写比较两个字符串，返回值可以是负数、0，正数
     {
         clienterror(fd, method, "501", "Not implemented1234", "Tiny does not implement this method");
+        return;
+    }
+
+    read_requesthdrs(&rio);
+
+    // parse URI from GET request
+    is_static = parse_uri(uri, filename, cgiargs);
+    if (stat(filename, &sbuf) < 0)
+    {
+        clienterror(fd, filename, "404", "Not found", "Tiny could't find the file.");
         return;
     }
 }
@@ -74,4 +87,51 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
     sprintf(buf, "Content-length: %d\r\n\r\n", (int)strlen(body));
     Rio_writen(fd, buf, strlen(buf));
     Rio_writen(fd, body, strlen(body));
+}
+
+void read_requesthdrs(rio_t *rp)
+{
+    char buf[MAXLINE];
+
+    Rio_readlineb(rp, buf, MAXLINE);
+    printf("%s", buf);
+    while (strcmp(buf, "\r\n"))
+    {
+        Rio_readlineb(rp, buf, MAXLINE);
+        printf("%s", buf);
+    }
+
+    return;
+}
+
+// 解析 URI，并且把解析的结果放在 filename 和 cgiargs 里
+int parse_uri(char *uri, char *filename, char *cgiargs)
+{
+    char *ptr;
+
+    if (!strstr(uri, "cgi-bin")) // static content   strstr查找字符串"cgi-bin"是不是包含在uri里
+    {
+        strcpy(cgiargs, "");
+        strcpy(filename, ".");
+        strcat(filename, uri); // 拼接字符串
+        if (uri[strlen(uri) - 1] == '/')
+            strcat(filename, "home.html");
+
+        return 1;
+    }
+    else // dynamic content
+    {
+        ptr = index(uri, '?'); // 返回指向?的指针
+        if (ptr)
+        {
+            strcpy(cgiargs, ptr + 1);
+            *ptr = '\0';
+        }
+        else
+            strcpy(cgiargs, "");
+
+        strcpy(filename, ".");
+        strcat(filename, uri);
+        return 0;
+    }
 }
