@@ -76,6 +76,56 @@ Cookie: key=%24argon2i%24v%3D19%24m%3D4096%2Ct%3D3%2Cp%3D1%24Ou5VFbV6pHi0aweNtwh
 ![image](https://user-images.githubusercontent.com/9459488/146711879-02dde80e-890d-47b9-aea9-7e7b28e396f7.png)
 
 
+压测
+
+```
+➜  ~ hey -z 10s -c 20 -host "2huo.xyz" "http://www.2huo.xyz:21080/README.md"
+
+Summary:
+  Total:	11.6494 secs
+  Slowest:	2.0216 secs
+  Fastest:	0.0159 secs
+  Average:	0.0253 secs
+  Requests/sec:	692.1409
+
+  Total data:	3104255 bytes
+  Size/request:	385 bytes
+
+Response time histogram:
+  0.016 [1]	|
+  0.217 [8012]	|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.417 [15]	|
+  0.618 [0]	|
+  0.818 [0]	|
+  1.019 [5]	|
+  1.219 [29]	|
+  1.420 [0]	|
+  1.620 [0]	|
+  1.821 [0]	|
+  2.022 [1]	|
+
+
+Latency distribution:
+  10% in 0.0182 secs
+  25% in 0.0191 secs
+  50% in 0.0201 secs
+  75% in 0.0212 secs
+  90% in 0.0223 secs
+  95% in 0.0232 secs
+  99% in 0.0489 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:	0.0146 secs, 0.0159 secs, 2.0216 secs
+  DNS-lookup:	0.0005 secs, 0.0000 secs, 0.0031 secs
+  req write:	0.0000 secs, 0.0000 secs, 0.0012 secs
+  resp wait:	0.0102 secs, 0.0076 secs, 0.3077 secs
+  resp read:	0.0005 secs, 0.0000 secs, 0.2291 secs
+
+Status code distribution:
+  [200]	8063 responses
+```
+
+
 ## serve_dynamic
 
 动态页面处理
@@ -95,3 +145,54 @@ gcc tiny.c csapp.c -g && ./a.out 21080
 
 
 ![image](https://user-images.githubusercontent.com/9459488/146715050-c80895dd-14bd-4da9-a27b-682ac5eb4d00.png)
+
+
+压测，这个结果可以后面留着和并发编程时对比
+
+```shell script
+➜  ~ hey -z 10s -c 20 -host "2huo.xyz" "http://www.2huo.xyz:21080/cgi-bin/adder?1&2"
+
+Summary:
+  Total:	10.0228 secs
+  Slowest:	1.0314 secs
+  Fastest:	0.0165 secs
+  Average:	0.0266 secs
+  Requests/sec:	751.9850
+
+  Total data:	791385 bytes
+  Size/request:	105 bytes
+
+Response time histogram:
+  0.016 [1]	|
+  0.118 [7518]	|■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.219 [0]	|
+  0.321 [4]	|
+  0.422 [0]	|
+  0.524 [0]	|
+  0.625 [0]	|
+  0.727 [0]	|
+  0.828 [0]	|
+  0.930 [0]	|
+  1.031 [14]	|
+
+
+Latency distribution:
+  10% in 0.0208 secs
+  25% in 0.0220 secs
+  50% in 0.0237 secs
+  75% in 0.0260 secs
+  90% in 0.0288 secs
+  95% in 0.0320 secs
+  99% in 0.0446 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:	0.0120 secs, 0.0165 secs, 1.0314 secs
+  DNS-lookup:	0.0005 secs, 0.0000 secs, 0.0022 secs
+  req write:	0.0000 secs, 0.0000 secs, 0.0008 secs
+  resp wait:	0.0136 secs, 0.0077 secs, 0.2885 secs
+  resp read:	0.0009 secs, 0.0000 secs, 0.2441 secs
+
+Status code distribution:
+  [200]	7537 responses
+
+```
