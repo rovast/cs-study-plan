@@ -66,6 +66,25 @@ void doit(int fd)
         clienterror(fd, filename, "404", "Not found", "Tiny could't find the file.");
         return;
     }
+
+    if (is_static)
+    {
+        if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode))
+        {
+            clienterror(fd, filename, "403", "Forbidden", "Tiny could't read the file");
+            return;
+        }
+        serve_static(fd, filename, sbuf.st_size);
+    }
+    else
+    {
+        if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode))
+        {
+            clienterror(fd, filename, "403", "Forbidden", "Tiny could't read the file");
+            return;
+        }
+        serve_dynamic(fd, filename, cgiargs);
+    }
 }
 
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg)
@@ -135,3 +154,42 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
         return 0;
     }
 }
+
+void serve_static(int fd, char *filename, int filesize)
+{
+    int srcfd;
+    char *srcp, filetype[MAXLINE], buf[MAXBUF];
+
+    get_filetype(filename, filetype);
+    sprintf(buf, "HTTP/1.0 200 OK\r\n"); // short msg 200 OK
+    Rio_writen(fd, buf, strlen(buf));
+    sprintf(buf, "Server: Tiny Web Server\r\n"); // headers
+    Rio_writen(fd, buf, strlen(buf));
+    sprintf(buf, "Content-type: %s\r\n", filetype); // content-type
+    Rio_writen(fd, buf, strlen(buf));
+    sprintf(buf, "Content-length: %d\r\n\r\n", filesize); // content-length
+    Rio_writen(fd, buf, strlen(buf));
+
+    // read file content
+    srcfd = Open(filename, O_RDONLY, 0);
+    srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+    Close(srcfd);
+    Rio_writen(fd, srcp, filesize);
+    Munmap(srcp, filesize);
+}
+
+void get_filetype(char *filename, char *filetype)
+{
+    if (strstr(filename, ".html"))
+        strcpy(filetype, "text/html; charset=utf-8");
+    else if (strstr(filename, ".gif"))
+        strcpy(filetype, "image/gif");
+    else if (strstr(filename, ".png"))
+        strcpy(filetype, "image/png");
+    else if (strstr(filename, "jpg"))
+        strcpy(filetype, "image/jpg");
+    else
+        strcpy(filetype, "text/plain; charset=utf-8");
+}
+
+void serve_dynamic(int fd, char *filename, char *cgiargs) {}

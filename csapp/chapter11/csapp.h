@@ -32,6 +32,8 @@
 #include <sys/socket.h>
 // addrinfo
 #include <netdb.h>
+// mmap
+#include <sys/mman.h>
 
 /* Simplifies calls to bind(), connect(), and accept() */
 /* $begin sockaddrdef */
@@ -100,6 +102,10 @@ int Closedir(DIR *dirp);
 
 // IO重定向
 int Dup2(int oldfd, int newfd);
+
+/* Memory mapping wrappers */
+void *Mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
+void Munmap(void *start, size_t length);
 
 /* Standard I/O wrappers */
 void Fclose(FILE *fp);

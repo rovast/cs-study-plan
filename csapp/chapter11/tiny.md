@@ -65,3 +65,14 @@ Cookie: key=%24argon2i%24v%3D19%24m%3D4096%2Ct%3D3%2Cp%3D1%24Ou5VFbV6pHi0aweNtwh
 ```
 
 
+## serve_static
+
+静态页面处理
+
+1. 判断 URI 是不是包含 cgi-bin，以此来区分是动态服务还是静态服务
+2. 静态服务判断文件类型，用以设置 content-type
+3. 使用 mmap 映射文件到虚拟内存，一次性输出到 clientfd
+
+![image](https://user-images.githubusercontent.com/9459488/146711879-02dde80e-890d-47b9-aea9-7e7b28e396f7.png)
+
+
