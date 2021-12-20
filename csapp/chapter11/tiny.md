@@ -76,3 +76,22 @@ Cookie: key=%24argon2i%24v%3D19%24m%3D4096%2Ct%3D3%2Cp%3D1%24Ou5VFbV6pHi0aweNtwh
 ![image](https://user-images.githubusercontent.com/9459488/146711879-02dde80e-890d-47b9-aea9-7e7b28e396f7.png)
 
 
+## serve_dynamic
+
+动态页面处理
+
+1. 设置环境变量
+2. 使用 Execve 加载指定的执行文件
+
+adder 执行文件准备
+```shell script
+gcc adder.c csapp.c -o cgi-bin/adder
+```
+
+server
+```shell script
+gcc tiny.c csapp.c -g && ./a.out 21080
+```
+
+
+![image](https://user-images.githubusercontent.com/9459488/146715050-c80895dd-14bd-4da9-a27b-682ac5eb4d00.png)

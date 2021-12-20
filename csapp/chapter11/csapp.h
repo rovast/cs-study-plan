@@ -52,6 +52,10 @@ typedef struct
 } rio_t;
 /* $end rio_t */
 
+/* External variables */
+extern int h_errno;    /* Defined by BIND for DNS errors */
+extern char **environ; /* Defined by libc */
+
 /* Misc constants */
 #define MAXLINE 8192 /* Max text line length */
 #define MAXBUF 8192  /* Max I/O buffer size */
@@ -64,11 +68,17 @@ void dns_error(char *msg);
 void gai_error(int code, char *msg);
 void app_error(char *msg);
 
-/*********************************************
- * Wrappers for Unix process control functions
- ********************************************/
+/* Process control wrappers */
 pid_t Fork(void);
+void Execve(const char *filename, char *const argv[], char *const envp[]);
 pid_t Wait(int *status);
+pid_t Waitpid(pid_t pid, int *iptr, int options);
+void Kill(pid_t pid, int signum);
+unsigned int Sleep(unsigned int secs);
+void Pause(void);
+unsigned int Alarm(unsigned int seconds);
+void Setpgid(pid_t pid, pid_t pgid);
+pid_t Getpgrp();
 
 /********************************
  * Wrappers for Unix I/O routines

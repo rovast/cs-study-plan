@@ -27,7 +27,7 @@ int main(void)
     // Generate the HTTP response
     printf("Connection: close\r\n");
     printf("Content-length: %d\r\n", (int)strlen(content));
-    printf("Content-type: text/html\r\n");
+    printf("Content-type: text/html\r\n\r\n");
     printf("%s", content);
     fflush(stdout);
 
