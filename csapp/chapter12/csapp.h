@@ -93,13 +93,16 @@ void Sigdelset(sigset_t *set, int signum);
 int Sigismember(const sigset_t *set, int signum);
 int Sigsuspend(const sigset_t *set);
 
-/********************************
- * Wrappers for Unix I/O routines
- ********************************/
+/* Unix I/O wrappers */
 int Open(const char *pathname, int flags, mode_t mode);
-ssize_t Read(int fd, void *buf, size_t n);
-ssize_t Write(int fd, const void *buf, size_t n);
+ssize_t Read(int fd, void *buf, size_t count);
+ssize_t Write(int fd, const void *buf, size_t count);
+off_t Lseek(int fildes, off_t offset, int whence);
 void Close(int fd);
+int Select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+int Dup2(int fd1, int fd2);
+void Stat(const char *filename, struct stat *buf);
+void Fstat(int fd, struct stat *buf);
 
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);             // readn without buff
@@ -114,9 +117,6 @@ void Rio_writen(int fd, void *usrbuf, size_t n);
 void Rio_readinitb(rio_t *rp, int fd);
 ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
-
-int Stat(const char *filename, struct stat *buf);
-int Fstat(int fd, struct stat *buf);
 
 // 目录相关操作
 DIR *Opendir(const char *name);

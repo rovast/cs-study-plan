@@ -27,6 +27,13 @@ int main(int argc, char **argv)
     {
         clientlen = sizeof(struct sockaddr_storage);
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+
+        // $start print client info
+        char hostname[MAXLINE];
+        Getnameinfo((SA *)&clientaddr, clientlen, hostname, MAXLINE, NULL, 0, NI_NUMERICHOST);
+        printf("--- Accepted connection from (%s, %s) ---\n", hostname, argv[1]);
+        // $end print client info
+
         if (Fork() == 0)
         {
             Close(listenfd);
