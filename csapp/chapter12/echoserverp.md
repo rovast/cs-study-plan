@@ -27,3 +27,20 @@ Escape character is '^]'.
 
 需要注意的是，SIGCHLD 信号是阻塞的，而 Linux 信号是不排队的，所以我们需要在 SIGCHLD 处理
 程序中准备好回收多个僵尸子进程的资源。
+
+
+# 查看子进程
+
+```shell
+# server
+gcc echoserverp.c csapp.c echo.c -g -o echoserverp
+echoserverp 21080
+
+# client
+telnet www.2huo.xyz:21080
+telnet www.2huo.xyz:21080
+telnet www.2huo.xyz:21080
+```
+
+
+![image](https://user-images.githubusercontent.com/9459488/147008186-70502fad-d6fe-49f7-a5f1-a56dd8c6b099.png)
