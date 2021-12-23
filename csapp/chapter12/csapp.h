@@ -36,6 +36,8 @@
 #include <sys/mman.h>
 // signal
 #include <signal.h>
+// pthread
+#include <pthread.h>
 
 /* Simplifies calls to bind(), connect(), and accept() */
 /* $begin sockaddrdef */
@@ -103,6 +105,15 @@ int Select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct t
 int Dup2(int fd1, int fd2);
 void Stat(const char *filename, struct stat *buf);
 void Fstat(int fd, struct stat *buf);
+
+/* Pthreads thread control wrappers */
+void Pthread_create(pthread_t *tidp, pthread_attr_t *attrp, void *(*routine)(void *), void *argp);
+void Pthread_join(pthread_t tid, void **thread_return);
+void Pthread_cancel(pthread_t tid);
+void Pthread_detach(pthread_t tid);
+void Pthread_exit(void *retval);
+pthread_t Pthread_self(void);
+void Pthread_once(pthread_once_t *once_control, void (*init_function)());
 
 /* Rio (Robust I/O) package */
 ssize_t rio_readn(int fd, void *usrbuf, size_t n);             // readn without buff
