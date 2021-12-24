@@ -7,7 +7,7 @@
 
 // fprintf stderr
 #include <stdio.h>
-// exit
+// exit malloc
 #include <stdlib.h>
 // errno
 #include <errno.h>
@@ -149,6 +149,12 @@ FILE *Fopen(const char *filename, const char *mode);
 void Fputs(const char *ptr, FILE *stream);
 size_t Fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 void Fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+/* Dynamic storage allocation wrappers */
+void *Malloc(size_t size);
+void *Realloc(void *ptr, size_t size);
+void *Calloc(size_t nmemb, size_t size);
+void Free(void *ptr);
 
 /****************************
  * Sockets interface wrappers
