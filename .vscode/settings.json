@@ -2,6 +2,8 @@
     "files.associations": {
         "cstdio": "c",
         "dirent.h": "c",
-        "csapp.h": "c"
+        "csapp.h": "c",
+        "sbuf.h": "c",
+        "bpf.h": "c"
     }
 }
