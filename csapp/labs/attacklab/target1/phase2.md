@@ -1,3 +1,31 @@
+# Phase2
+
+基本目标：原来 test 函数执行完 getbuf 后，会将控制权返回到 test。现在要求执行 getbuf 时，通过代码注入的方式
+来执行 touch2，并且传递 cookie 的值作为第一个参数。
+
+## 用到的一些基本知识
+
+1. 寄存器 rdi 用来储存第一个参数
+2. 当 test 执行 getbuf 时，需要调用 call 执行（假设 P call Q）。执行 call 时，会将下一条指令地址（即 P 中 call 指令的下一条指令地址）压栈，用于 Q ret 时再取出，作为 PC 继续执行的地址。
+   ![image](https://user-images.githubusercontent.com/9459488/147803454-404dce3e-6ed4-449c-98d8-e39285055faa.png)
+3. 执行 getbuf 时，使用 sub 来申请一段栈空间。我们在这个栈空间里输出内容，当超出了栈空间大小时，就会覆盖到第 2 步中提到的 ret 后的返回地址。
+   ![image](https://user-images.githubusercontent.com/9459488/147803497-fc52b6d2-f32c-41b1-9c12-80e71689e0bc.png)
+
+
+## 解题逻辑
+
+![image](https://user-images.githubusercontent.com/9459488/147803518-f2b4d572-d568-4398-a13b-320cda2e7af1.png)
+
+1. 覆盖原来的 test 中 getbuf ret 后的指令地址为我们注入的代码地址 $ci_addr
+2. 注入代码中压入 touch2 的地址到栈，便于 ret 时取出
+3. 在注入代码中设定 cookie 值为第一个参数
+
+
+![image](https://user-images.githubusercontent.com/9459488/147803543-b1ce695d-b74c-4b47-a779-48efef6d0e09.png)
+
+
+> 另：从图中，我们可以看到代码段 text 地址是 0x4017ec，地址数值相对小，而栈的地址大。这个和内存映像正好也对应上了。
+
 ## 获取几个重要值
 
 1. 获取 getbuf stack frame 最后一行储存 buf 的开始地址为 `0x5561dc78`
