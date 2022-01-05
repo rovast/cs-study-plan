@@ -5,6 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "java",
+            "name": "Launch ArgsDemo",
+            "request": "launch",
+            "mainClass": "ArgsDemo",
+            "projectName": "cs-study-plan_e874c3fc"
+        },
+        {
+            "type": "java",
+            "name": "Launch DogLauncher",
+            "request": "launch",
+            "mainClass": "DogLauncher",
+            "projectName": "cs-study-plan_e874c3fc"
+        },
+        {
+            "type": "java",
+            "name": "Launch HelloWorld",
+            "request": "launch",
+            "mainClass": "HelloWorld",
+            "projectName": "cs-study-plan_e874c3fc"
+        },
+        {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
@@ -22,6 +43,6 @@
                     "ignoreFailures": true
                 }
             ]
-        },
+        }
     ]
 }
