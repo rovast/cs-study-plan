@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch IntList",
+            "request": "launch",
+            "mainClass": "IntList",
+            "projectName": "cs-study-plan_e874c3fc"
+        },
+        {
+            "type": "java",
             "name": "Launch ArgsDemo",
             "request": "launch",
             "mainClass": "ArgsDemo",
