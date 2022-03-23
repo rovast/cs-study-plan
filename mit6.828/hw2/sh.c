@@ -104,8 +104,36 @@ runcmd(struct cmd *cmd)
 
   case '|':
     pcmd = (struct pipecmd*)cmd;
-    fprintf(stderr, "pipe not implemented\n");
+    // fprintf(stderr, "pipe not implemented\n");
     // Your code here ...
+    if(pipe(p) < 0) {
+      fprintf(stderr, "pipe failed\n");
+      exit(0);
+    }
+
+    if(fork1() == 0) { // 子进程，执行 left，并且将标准输出重定向到 管道的写入端：p[1]
+      close(1);
+      dup(p[1]);
+      close(p[0]);
+      close(p[1]);
+
+      runcmd(pcmd->left);
+    }
+
+    if(fork1() == 0) { // 执行 right，其标准输入需要读取管道的输出端 p[0]
+      close(0);
+      dup(p[0]);
+      close(p[0]);
+      close(p[1]);
+
+      runcmd(pcmd->right);
+    }
+
+    // 父进程等待执行结束
+    close(p[0]);
+    close(p[1]);
+    wait(&r);
+    wait(&r);
     break;
   }    
   _exit(0);
