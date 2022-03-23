@@ -90,8 +90,15 @@ runcmd(struct cmd *cmd)
   case '>':
   case '<':
     rcmd = (struct redircmd*)cmd;
-    fprintf(stderr, "redir not implemented\n");
+    // fprintf(stderr, "redir not implemented\n");
     // Your code here ...
+    // 其实现的核心就是将 rcmd->fd 和 rcmd->file->fd 进行互换
+    close(rcmd->fd); // 关闭原来的 stdin(type = "<") 或 stdout(type= ">")
+    if(open(rcmd->file, rcmd->flags, 0644) < 0) { // 打开文件后，自动会使用最小的fd，即上一句 close 释放的 fd
+      fprintf(stderr, "Unable to open file: %s\n", rcmd->file);
+      exit(0);
+    }
+
     runcmd(rcmd->cmd);
     break;
 
