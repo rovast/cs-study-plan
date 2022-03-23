@@ -63,11 +63,27 @@ runcmd(struct cmd *cmd)
       _exit(0);
     // fprintf(stderr, "exec not implemented\n");
     // Your code here ...
+    if(access(ecmd->argv[0], F_OK) == 0) { // 如果当前目录下就存在该文件（且可以访问），那么直接执行
+      execv(ecmd->argv[0], ecmd->argv);
+    } else { // 当前目录下不存在，则需要去 /bin/ 目录下查找
+      const char *bin_path = "/bin/";
+      int path_len = strlen(ecmd->argv[0]) + strlen(bin_path);
+      char *abs_path = (char *)malloc((path_len + 1) * sizeof(char));
+      strcpy(abs_path, bin_path);
+      strcat(abs_path, ecmd->argv[0]);
 
-    char cmdpath[80];
-    strcpy(cmdpath, "/bin/");
-    strcat(cmdpath, ecmd->argv[0]);
-    execv(cmdpath, ecmd->argv);
+      if(access(abs_path, F_OK) == 0) {
+        execv(abs_path, ecmd->argv);
+      } else {
+        fprintf(stderr, "%s: command not found\n", ecmd->argv[0]);
+      }
+    }
+
+    /* simple version */
+    // char cmdpath[80];
+    // strcpy(cmdpath, "/bin/");
+    // strcat(cmdpath, ecmd->argv[0]);
+    // execv(cmdpath, ecmd->argv);
 
     break;
 
