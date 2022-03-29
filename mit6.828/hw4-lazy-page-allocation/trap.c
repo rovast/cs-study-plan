@@ -14,6 +14,8 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
+extern int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+
 void
 tvinit(void)
 {
@@ -77,6 +79,21 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
+  case T_PGFLT: {
+    // hw4 part2: 在发生错误的地址分配新的物理内存，并且返回到用户态继续执行当前进程
+    // mapping a newly-allocated page of physical memory at the faulting address, 
+    // and then returning back to user space to let the process continue executing
+    char* mem = kalloc();
+    if (mem != 0) {
+        memset(mem, 0, PGSIZE);
+        if (mappages(myproc()->pgdir, (void*)PGROUNDDOWN(rcr2()), PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+            kfree(mem);
+        }
+    } else {
+        cprintf("trap(): kalloc out of memory\n");
+    }
+    break;
+  }
 
   //PAGEBREAK: 13
   default:

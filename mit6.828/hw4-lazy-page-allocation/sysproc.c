@@ -54,7 +54,7 @@ sys_sbrk(void)
   // if(growproc(n) < 0)
   //   return -1;
 
-  // hw4，只增加 proc->sz，但是不实际分配内存。返回老的 addr
+  // hw4 part1，只增加 proc->sz，但是不实际分配内存。返回老的 addr
   // Your new sbrk(n) should just increment 
   // the process's size (myproc()->sz) by n 
   // and return the old size
