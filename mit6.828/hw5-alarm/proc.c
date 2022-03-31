@@ -112,6 +112,10 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  // 初始化 alarm 相关的成员变量
+  p->current_ticks = 0;
+  p->alarmticks = -1;
+
   return p;
 }
 

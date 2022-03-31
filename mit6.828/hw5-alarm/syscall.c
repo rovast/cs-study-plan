@@ -106,7 +106,16 @@ extern int sys_uptime(void);
 
 // hw5
 int sys_alarm(void) {
-  cprintf("sys_alarm\n");
+  int ticks;
+  void (*handler)();
+
+  // 获取到系统调用时传递的 ticks, handler
+  if(argint(0, &ticks) < 0) return -1;
+  if(argptr(1, (char **)&handler, 1) < 0) return -1;
+
+  // 传递给当前进程对应的成员
+  myproc()->alarmticks = ticks;
+  myproc()->alarmhandler = handler;
   return 0;
 }
 

@@ -47,13 +47,32 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
-  case T_IRQ0 + IRQ_TIMER:
+  case T_IRQ0 + IRQ_TIMER: // 每个 CPU tick，就会触发 T_IRQ0 + IRQ_TIMER 中断
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
       wakeup(&ticks);
       release(&tickslock);
     }
+
+    // You only want to manipulate a process's alarm ticks 
+    // if there's a process running 
+    // and if the timer interrupt came from user space
+    struct proc* p = myproc();
+    if(p != 0 && (tf->cs & 3) == 3){
+      p->current_ticks++;
+
+      if(p->current_ticks == p->alarmticks) {
+        p->current_ticks = 0;
+
+        // when the handler returns, the process resumes executing where it left off. 
+        tf->esp -= 4;                    // 申请栈空间(4字节)，用来存放 handler
+        *(uint*)(tf->esp) = tf->eip;     // esp,寄存器存放当前线程的栈顶指针
+        // execute its handler
+        tf->eip = (uint)p->alarmhandler; // eip,寄存器存放下一个CPU指令存放的内存地址
+      }
+    }
+
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
