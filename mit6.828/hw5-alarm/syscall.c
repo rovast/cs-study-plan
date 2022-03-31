@@ -104,6 +104,12 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 
+// hw5
+int sys_alarm(void) {
+  cprintf("sys_alarm\n");
+  return 0;
+}
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -126,6 +132,8 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+// hw5
+[SYS_alarm]   sys_alarm,
 };
 
 void
