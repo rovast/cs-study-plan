@@ -174,14 +174,14 @@ extern volatile pde_t uvpd[];     // VA of current page directory
  */
 struct PageInfo {
 	// Next page on the free list.
-	struct PageInfo *pp_link;
+	struct PageInfo *pp_link; // 链表上下一个可用的 page
 
 	// pp_ref is the count of pointers (usually in page table entries)
 	// to this page, for pages allocated using page_alloc.
 	// Pages allocated at boot time using pmap.c's
 	// boot_alloc do not have valid reference count fields.
 
-	uint16_t pp_ref;
+	uint16_t pp_ref; // pp_ref 是指通过 page_alloc 引用到这个页的 pointer 数量。Pages 在 pmap.c 中使用 boot_alloc 分配，并且没有有效的引用
 };
 
 #endif /* !__ASSEMBLER__ */

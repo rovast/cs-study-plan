@@ -29,6 +29,9 @@ i386_init(void)
 	// Lab 2 memory management initialization functions
 	mem_init();
 
+	// Lab1 Test the stack backtrace function
+	// test_backtrace(5);
+
 	// Drop into the kernel monitor.
 	while (1)
 		monitor(NULL);

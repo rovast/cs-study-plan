@@ -102,7 +102,18 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-
+	
+	// allocates enough pages of contiguous physical memory to hold 'n' bytes. 
+	if ( n > 0 ) { 
+		result = nextfree;
+		nextfree += ROUNDUP(n, PGSIZE); // 这个函数获取到最小的 n*PGSIZE ，取上界
+		return result;
+	} 
+	
+	// returns the address of the next free page without allocating anything.
+	if (n == 0) {
+		return nextfree;
+	}
 	return NULL;
 }
 
@@ -115,6 +126,10 @@ boot_alloc(uint32_t n)
 //
 // From UTOP to ULIM, the user is allowed to read but not write.
 // Above ULIM the user cannot read or write.
+// 
+// 设定两级的 page table, kern_pgdir 是线性地址的根。
+// 该函数只设定内核部分的地址空间(例如 >= UTOP 的地址)，用户空间的在之后的环节设置。
+// UTOP至ULIM 用户只读(不能写)。ULIM 之上的，用户不能访问(读写都不行)
 void
 mem_init(void)
 {
@@ -125,7 +140,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	// panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -142,13 +157,19 @@ mem_init(void)
 	kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P;
 
 	//////////////////////////////////////////////////////////////////////
-	// Allocate an array of npages 'struct PageInfo's and store it in 'pages'.
+	// Allocate an array of npages 'struct PageInfo's and store it in 'pages'. 
 	// The kernel uses this array to keep track of physical pages: for
 	// each physical page, there is a corresponding struct PageInfo in this
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
+	// 
+	// 申请 npages 大小的 struct PageInfo 数组，存在 pages 里。
+	// 内核使用这个数组来跟踪物理页: 每个物理页对应数组里的一个 PageInfo 结构体。
+	// npages 表示物理内存里所有的物理页数量。
+	// 使用 memset 来给 PageInfo 结构体里所有成员设置为0.
 	// Your code goes here:
-
+	pages = (struct PageInfo*)boot_alloc(sizeof(struct PageInfo) * npages);
+	memset(pages, 0, npages * sizeof(struct PageInfo));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -156,6 +177,9 @@ mem_init(void)
 	// memory management will go through the page_* functions. In
 	// particular, we can now map memory using boot_map_region
 	// or page_insert
+	//
+	// 现在我们设定好了内核追踪空闲物理页的数据结构。接下来的内存管理操作就可以使用 page_* 函数了。
+	// 尤其是，我们现在可以使用 boot_map_region 或 page_insert 来映射内存了。
 	page_init();
 
 	check_page_free_list(1);
@@ -223,6 +247,10 @@ mem_init(void)
 // Tracking of physical pages.
 // The 'pages' array has one 'struct PageInfo' entry per physical page.
 // Pages are reference counted, and free pages are kept on a linked list.
+
+// 跟踪物理页
+// pages数组中，每个物理页都有一个 PageInfo 结构体 entry
+// Pages 是引用计数，空闲的页维护在链表中
 // --------------------------------------------------------------
 
 //
@@ -230,6 +258,9 @@ mem_init(void)
 // After this is done, NEVER use boot_alloc again.  ONLY use the page
 // allocator functions below to allocate and deallocate physical
 // memory via the page_free_list.
+//
+// 初始化 page 结构体和 内存空闲链表。这些工作做完后，就不需要再使用 boot_alloc 了。
+// 只能使用 page allocator 相关下述来申请或释放物理内存(page_free_list)
 //
 void
 page_init(void)
@@ -252,7 +283,21 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+
+	// i = 0 被使用了，不用管
+	// 第一段 [PGSIZE, npages_basemem * PGSIZE)
+	i = 1;
+	for (; i < npages_basemem; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}
+
+	// 中间有个 IO 洞 [IOPHYSMEM, EXTPHYSMEM)
+
+	// 最后一段 [EXTPHYSMEM, ...)
+	i = PGNUM(PADDR(boot_alloc(0)));
+	for (; i < npages; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -275,7 +320,20 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	return 0;
+	// 申请新的页，就是在 page_free_list 链表增加一个结点
+	if(!page_free_list) 
+		return NULL;
+
+	struct PageInfo* res = page_free_list;
+	page_free_list = page_free_list->pp_link;
+
+	res->pp_link = NULL;
+	res->pp_ref = 0;
+
+	if(alloc_flags & ALLOC_ZERO) 
+		memset(page2kva(res), '\0', PGSIZE);
+	
+	return res;
 }
 
 //
@@ -288,7 +346,15 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	// 向列表中交还一个 page
+	if(pp->pp_ref || pp->pp_link) {
+		panic("page_free panic: pp->pp_ref is nonzero or pp->pp_link is not NULL");
+	}
+
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
+
 
 //
 // Decrement the reference count on a page,
