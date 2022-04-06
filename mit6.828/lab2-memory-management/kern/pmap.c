@@ -389,11 +389,31 @@ page_decref(struct PageInfo* pp)
 // Hint 3: look at inc/mmu.h for useful macros that manipulate page
 // table and page directory entries.
 //
+// 1. 查看 PDE 里面是否存在，如果存在直接返回
+// 2. 如果不存在，则根据 create 参数判断是否创建
+//
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	pde_t *pde = &pgdir[PDX(va)]; // PDX=page directory index，即获取到 va 对应的 PDE
+	pte_t *pgtab;
+
+	if(*pde & PTE_P) { // 如果该 PDE 存在且 present 位可用(#define PTE_P 0x001 Present)
+		pgtab = (pte_t *)KADDR(PTE_ADDR(*pde)); // KADDR 获取到物理地址，并且返回对应的内核虚拟地址
+	} else {
+		if(!create)
+			return NULL;
+
+		struct PageInfo* newp = page_alloc(ALLOC_ZERO); // 申请新的页，ALLOC_ZERO表示需要初始化为0
+		if(!newp)
+			return NULL;
+		newp->pp_ref++; // 在 page_alloc 时，已经初始化了 pp_ref 和 pp_link，这里给 pp_ref++ 即可
+		*pde = page2pa(newp) | PTE_P | PTE_W | PTE_U; // 构建 page directory entry
+		pgtab = page2kva(newp); // pgtab
+	}
+
+	return &pgtab[PTX(va)];
 }
 
 //
@@ -411,6 +431,21 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	pte_t *pteaddr;
+
+	for (; size > 0; size -= PGSIZE) {
+		pteaddr = pgdir_walk(pgdir, (void*)va, 1);
+		if (!pteaddr)
+			panic("boot_map_region: pgdir_walk fail\n");
+		
+		if (*pteaddr & PTE_P)
+			panic("boot_map_region: remap\n");
+
+		*pteaddr = PTE_ADDR(pa) | perm | PTE_P;
+
+		va += PGSIZE;
+		pa += PGSIZE;
+	}
 }
 
 //
@@ -442,6 +477,17 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t *pte = pgdir_walk(pgdir, va, 1);
+	if(!pte)
+		return -E_NO_MEM;
+
+	pp->pp_ref++;
+
+	if(*pte & PTE_P)
+		page_remove(pgdir, va);
+	
+	*pte = page2pa(pp) | PTE_P | perm;
+
 	return 0;
 }
 
@@ -456,10 +502,22 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 //
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
+// 根据已知条件，返回对应的 PageInfo 信息
+//
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
+	pte_t *pte = pgdir_walk(pgdir, va, 0);
+	if (!pte)
+		return NULL;
+	
+	if (pte_store) 
+		*pte_store = pte;
+	
+	if (*pte & PTE_P)
+		return pa2page(PTE_ADDR(*pte));
+
 	return NULL;
 }
 
@@ -482,6 +540,14 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t *pte_store;
+	struct PageInfo *p = page_lookup(pgdir, va, &pte_store);
+	if(!p)
+		return;
+	
+	*pte_store = 0; // The pg table entry corresponding to 'va' should be set to 0
+	page_decref(p); // The ref count on the physical page should decrement.
+	tlb_invalidate(pgdir, va); // TLB must be invalidated
 }
 
 //
