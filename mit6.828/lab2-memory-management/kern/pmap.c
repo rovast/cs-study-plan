@@ -434,11 +434,25 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	for(size_t i = 0; i < size; i += PGSIZE){
-		tlb_invalidate(pgdir, (void *)va + i);
-		pte_t* pte = pgdir_walk(pgdir, (const void *)va + i, 1);
-		*pte = (pa + i) | PTE_P | perm;
+	// 参考 xv6-rev10 的 mappages，更好理解
+	pte_t *pte;
+	for (size_t i = 0; i < size; i += PGSIZE) {
+		pte = pgdir_walk(pgdir, (void *)va, 1);
+		if (!pte) panic("boot_map_region: pgdir_walk fail\n");
+		if (*pte & PTE_P) panic("boot_map_region: remap\n");
+
+		*pte = pa | perm | PTE_P;
+
+		va += PGSIZE;
+		pa += PGSIZE;
 	}
+
+	// 参考 https://github.com/yunwei37/6.828-2018-labs/blob/lab2/kern/pmap.c
+	// for(size_t i = 0; i < size; i += PGSIZE){
+	// 	tlb_invalidate(pgdir, (void *)va + i);
+	// 	pte_t* pte = pgdir_walk(pgdir, (const void *)va + i, 1);
+	// 	*pte = (pa + i) | PTE_P | perm;
+	// }
 }
 
 //
