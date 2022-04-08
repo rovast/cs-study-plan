@@ -20,6 +20,9 @@ int keys[NKEYS];
 int nthread = 1;
 volatile int done;
 
+// lock
+pthread_mutex_t lock;
+
 double
 now()
 {
@@ -57,7 +60,10 @@ insert(int key, int value, struct entry **p, struct entry *n)
 static void put(int key, int value)
 {
     int i = key % NBUCKET;
-    insert(key, value, &table[i], table[i]);
+
+    pthread_mutex_lock(&lock);
+    insert(key, value, &table[i], table[i]); // 写的动作不具备原子性，所以需要加锁
+    pthread_mutex_unlock(&lock);
 }
 
 static struct entry *
@@ -121,6 +127,11 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s: %s nthread\n", argv[0], argv[0]);
         exit(-1);
     }
+
+    // lock init
+    pthread_mutex_init(&lock, NULL);
+
+
     nthread = atoi(argv[1]);
     tha = malloc(sizeof(pthread_t) * nthread);
     srandom(0);
