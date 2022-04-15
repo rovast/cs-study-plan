@@ -23,6 +23,7 @@ thread_p  current_thread;
 thread_p  next_thread;
 extern void thread_switch(void);
 
+// 设置 main thread 为 0 号线程，并且标记为不可调度
 void 
 thread_init(void)
 {
@@ -40,6 +41,7 @@ thread_schedule(void)
 {
   thread_p t;
 
+  // 查找可被调度的 thread
   /* Find another runnable thread. */
   next_thread = 0;
   for (t = all_thread; t < all_thread + MAX_THREAD; t++) {
@@ -61,19 +63,25 @@ thread_schedule(void)
 
   if (current_thread != next_thread) {         /* switch threads?  */
     next_thread->state = RUNNING;
-    thread_switch();
+    thread_switch(); // 执行调度
   } else
     next_thread = 0;
 }
 
+// thread_create 的过程就是在 all_thread 数组中查找空闲的 thread 槽位
+// 把需要运行的 thread 准备好，并且标记为可调度(RUNNABLE)，放到槽位里
+// 之后会由 schedule 进行调度，在 aLL_thread 中运行 RUNNABLE 的 thread
 void 
 thread_create(void (*func)())
 {
   thread_p t;
 
+  // 找到第一个空闲的插槽，用来存放需要运行的 thread
   for (t = all_thread; t < all_thread + MAX_THREAD; t++) {
     if (t->state == FREE) break;
   }
+
+  // 设定 thread 的必要信息，包括栈、状态
   t->sp = (int) (t->stack + STACK_SIZE);   // set sp to the top of the stack
   t->sp -= 4;                              // space for return address
   * (int *) (t->sp) = (int)func;           // push return address on stack
@@ -81,6 +89,7 @@ thread_create(void (*func)())
   t->state = RUNNABLE;
 }
 
+// 让出 CPU 资源(give up CPU)，把自己标记为 RUNNABLE，等着下次调度时再有机会运行
 void 
 thread_yield(void)
 {
@@ -98,7 +107,7 @@ mythread(void)
     thread_yield();
   }
   printf(1, "my thread: exit\n");
-  current_thread->state = FREE;
+  current_thread->state = FREE; // 执行完成后，将占用的 thread 槽位归还给 all_thread
   thread_schedule();
 }
 
