@@ -27,7 +27,21 @@ barrier_init(void)
 static void 
 barrier()
 {
-  bstate.round++;
+  pthread_mutex_lock(&bstate.barrier_mutex);
+
+  bstate.nthread++;
+  printf("bstate.round=%d\tbstate.nthread=%d\n", bstate.round, bstate.nthread);
+
+  if (bstate.nthread != nthread) {
+    pthread_cond_wait(&bstate.barrier_cond, &bstate.barrier_mutex);
+  } else {
+    bstate.round++;
+    bstate.nthread = 0;
+
+    pthread_cond_broadcast(&bstate.barrier_cond);
+  }
+
+  pthread_mutex_unlock(&bstate.barrier_mutex);
 }
 
 static void *
@@ -37,10 +51,10 @@ thread(void *xa)
   long delay;
   int i;
 
-  for (i = 0; i < 20000; i++) {
+  for (i = 0; i < 50; i++) {
     int t = bstate.round;
-    assert (i == t);
-    barrier();
+    assert (i == t); // 理想情况是，每次到 barrier，都要等待其他线程也进行到 barrier
+    barrier();       // 也就是说，每一轮各线程都需要“均匀”的执行
     usleep(random() % 100);
   }
 }
