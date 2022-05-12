@@ -18,3 +18,21 @@ python UDPClient.py
 # Input lower case senrence:hello
 # HELLO
 ```
+
+
+## TCP
+
+
+Server
+```bash
+python TCPServer.py 
+# The server is ready to receive
+```
+
+Client
+```bash
+python TCPClient.py
+# Input lowercase sentence:hello
+# ('From server:', u'HELLO')
+```
+
