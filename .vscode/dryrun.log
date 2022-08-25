@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Volumes/work/Github/cs-study-plan'
+make: Leaving directory `/Volumes/work/Github/cs-study-plan'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+
