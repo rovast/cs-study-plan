@@ -11,7 +11,7 @@ defmodule LanguageList do
 
   def first([head | _]), do: head
 
-  def count(list), do: Enum.count(list)
+  def count(list), do: length(list)
 
   def functional_list?(list) do
     "Elixir" in list
