@@ -16,13 +16,19 @@ defmodule BoutiqueInventory do
   end
 
   def increase_quantity(item, count) do
-    new_sizes =
-      Enum.reduce(item.quantity_by_size, %{}, fn {size, prev_count}, sizes ->
-        Map.put(sizes, size, prev_count + count)
-      end)
+    # new_sizes =
+    #   Enum.reduce(item.quantity_by_size, %{}, fn {size, prev_count}, sizes ->
+    #     Map.put(sizes, size, prev_count + count)
+    #   end)
 
-    %{item | quantity_by_size: new_sizes}
+    # %{item | quantity_by_size: new_sizes}
     # Map.put(item, :quantity_by_size, new_sizes)
+
+    %{
+      item
+      | quantity_by_size:
+          Map.new(item.quantity_by_size, fn {key, value} -> {key, value + count} end)
+    }
   end
 
   def total_quantity(%{quantity_by_size: sizes}) do
