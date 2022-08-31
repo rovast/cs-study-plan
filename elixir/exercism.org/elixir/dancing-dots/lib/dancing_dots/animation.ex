@@ -37,11 +37,13 @@ defmodule DancingDots.Zoom do
     {:ok, opts}
   end
 
+  @impl DancingDots.Animation
   def init(velocity: value),
     do:
       {:error,
        "The :velocity option is required, and its value must be a number. Got: #{inspect(value)}"}
 
+  @impl DancingDots.Animation
   def init(_) do
     {:error, "The :velocity option is required, and its value must be a number. Got: nil"}
   end
