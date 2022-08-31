@@ -14,6 +14,9 @@ defmodule CommunityGarden do
   end
 
   def register(pid, register_to) do
+    # fn 返回一个包含两个元素的元祖(tuple)
+    #   第一个是 get 获取的值，就是 get_and_update 的返回值。the first being the value to return (that is, the "get" value)
+    #   第二个是新状态 the second one being the new state of the agent.
     Agent.get_and_update(pid, fn %{plots: plots, index: index} ->
       plot = %Plot{plot_id: index + 1, registered_to: register_to}
       {plot, %{plots: [plot | plots], index: index + 1}}
