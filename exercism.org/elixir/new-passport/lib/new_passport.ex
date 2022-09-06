@@ -1,31 +1,40 @@
 defmodule NewPassport do
   def get_new_passport(now, birthday, form) do
-    {res, msg_or_timestamp} = enter_building(now)
-
-    if res == :ok do
-      {res2, count_fn_or_msg} = find_counter_information(now)
-
-      if res2 == :ok do
-        counter = count_fn_or_msg.(birthday)
-
-        {res3, checksum_or_msg} = stamp_form(msg_or_timestamp, counter, form)
-
-        if res3 == :ok do
-          passport_number = get_new_passport_number(msg_or_timestamp, counter, checksum_or_msg)
-          {:ok, passport_number}
-        else
-          {res3, checksum_or_msg}
-        end
-      else
-        if res2 == :coffee_break do
-          {:retry, NaiveDateTime.add(now, 15 * 60)}
-        else
-          {res, msg_or_timestamp}
-        end
-      end
+    with {:ok, timestamp} <- enter_building(now),
+         {:ok, count_fn} <- find_counter_information(now),
+         {:ok, checksum} <- stamp_form(timestamp, count_fn.(birthday), form) do
+      {:ok, get_new_passport_number(timestamp, count_fn.(birthday), checksum)}
     else
-      {res, msg_or_timestamp}
+      {:coffee_break, _msg} -> {:retry, NaiveDateTime.add(now, 15 * 60)}
+      {:error, msg} -> {:error, msg}
     end
+
+    # {res, msg_or_timestamp} = enter_building(now)
+
+    # if res == :ok do
+    #   {res2, count_fn_or_msg} = find_counter_information(now)
+
+    #   if res2 == :ok do
+    #     counter = count_fn_or_msg.(birthday)
+
+    #     {res3, checksum_or_msg} = stamp_form(msg_or_timestamp, counter, form)
+
+    #     if res3 == :ok do
+    #       passport_number = get_new_passport_number(msg_or_timestamp, counter, checksum_or_msg)
+    #       {:ok, passport_number}
+    #     else
+    #       {res3, checksum_or_msg}
+    #     end
+    #   else
+    #     if res2 == :coffee_break do
+    #       {:retry, NaiveDateTime.add(now, 15 * 60)}
+    #     else
+    #       {res, msg_or_timestamp}
+    #     end
+    #   end
+    # else
+    #   {res, msg_or_timestamp}
+    # end
   end
 
   # Do not modify the functions below
