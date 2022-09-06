@@ -2,6 +2,11 @@ defmodule SuperDuper.Server do
   use GenServer
   alias SuperDuper.Core
 
+  def init({character, _says} = info) do
+    IO.puts("Starting #{character}")
+    {:ok, Core.info(character)}
+  end
+
   def init(character) do
     IO.puts("Starting #{character}")
     {:ok, Core.info(character)}
@@ -17,12 +22,20 @@ defmodule SuperDuper.Server do
     {:reply, says, state}
   end
 
+  def start_link({character, _says} = info) do
+    GenServer.start_link(__MODULE__, info, name: character)
+  end
+
   def start_link(character) do
     GenServer.start_link(__MODULE__, character, name: character)
   end
 
   def die(server), do: GenServer.cast(server, :die)
   def say(server), do: GenServer.call(server, :say)
+
+  def child_spec({name, says} = _info) do
+    %{id: name, start: {__MODULE__, :start_link, [name, says]}}
+  end
 
   def child_spec(name) do
     %{id: name, start: {__MODULE__, :start_link, [name]}}
