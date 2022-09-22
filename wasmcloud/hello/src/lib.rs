@@ -1,7 +1,11 @@
 use wasmbus_rpc::actor::prelude::*;
 use wasmcloud_interface_httpserver::{HttpRequest, HttpResponse, HttpServer, HttpServerReceiver};
 
+// The HealthResponder term generates a function 
+// that automatically responds to health check queries from the wasmCloud host. 
 #[derive(Debug, Default, Actor, HealthResponder)]
+// The #[services(...)] line declares the services (‘traits’, in Rust) that your actor implements, 
+// and generates message handling code for those interfaces.
 #[services(Actor, HttpServer)]
 struct HelloActor {}
 
@@ -20,7 +24,7 @@ impl HttpServer for HelloActor {
     }
 }
 
-fn handle_http_request(req: &HttpRequest) -> std::result::Request<HttpResponse, RpcError> {
+fn handle_http_request(req: &HttpRequest) -> std::result::Result<HttpResponse, RpcError> {
     let text = form_urlencoded::parse(req.query_string.as_bytes())
         .find(|(n, _)| n == "name")
         .map(|(_, v)| v.to_string())
@@ -32,11 +36,6 @@ fn handle_http_request(req: &HttpRequest) -> std::result::Request<HttpResponse, 
     })
 }
 
-
-// If you’re new to Rust, 
-// the #[cfg(test)] and #[test] annotations are special markers 
-// that denote this module and function as a test function, 
-// so they will not be compiled into your WebAssembly module.
 #[cfg(test)]
 mod test {
     use crate::handle_http_request;
