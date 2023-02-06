@@ -1,2 +1,4 @@
-https://www.youtube.com/watch?v=gyMwXuJrbJQ&t=12715s
+https://github.com/smartcontractkit/full-blockchain-solidity-course-js
+
+https://www.youtube.com/watch?v=gyMwXuJrbJQ
 
