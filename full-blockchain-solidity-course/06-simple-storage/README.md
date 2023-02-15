@@ -22,3 +22,7 @@ pnpm compile
 ```bash
 node deploy.js
 ```
+
+## Refer
+
+https://github.com/PatrickAlphaC/ethers-simple-storage-fcc
